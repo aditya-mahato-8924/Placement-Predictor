@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
+from mlflow import MlflowClient
 from src.pipeline.predict_pipeline import PredictPipeline, CustomData
 from src.schema.validate_user_input import PlacementPredictorInput
 from src.schema.validate_output import ResponseModel
@@ -15,16 +16,23 @@ app = FastAPI(
 @app.get('/')
 def home():
     """Home page for the Placement Prediction API."""
-    return {"message": "Welcome to the Placement Prediction API"}
+    welcome_msg = {"message": "Welcome to the Placement Prediction API"}
+
+    return JSONResponse(content=welcome_msg, status_code=200)
 
 # create a health check route
 @app.get('/health')
 def health_check():
     """Health check endpoint for the Placement Prediction API."""
-    return {
+
+    model_info =  {
         "status": "OK",
-        "version": '1.0.0'
+        "model_name": "Placement Predictor Model",
+        "model_version": "3",
     }
+
+    return JSONResponse(content=model_info, status_code=200)
+
 
 # create a prediction route
 @app.post('/predict', response_model=ResponseModel)
@@ -36,13 +44,13 @@ def get_prediction(data: PlacementPredictorInput):
 
         # convert the input data to a dataframe
         custom_data = CustomData(**input_data)
-        data = custom_data.get_data_as_data_frame()
+        data = custom_data.get_data_as_dataframe()
 
         # create an instance of the prediction pipeline
         predict_pipeline = PredictPipeline()
 
         # get the prediction
-        result = predict_pipeline.predict(data)
+        result = predict_pipeline.get_prediction(data)
 
         return JSONResponse(status_code=200, content=result)
     except Exception as e:
