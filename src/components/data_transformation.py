@@ -11,10 +11,15 @@ from sklearn.pipeline import Pipeline
 
 from src.exception import CustomException
 from src.logger import logging
+from src.utils import get_root_directory
 
 @dataclass
 class DataTransformationConfig:
-    preprocessor_obj_file_path: str = os.path.join('artifacts', 'preprocessor.pkl')
+    train_data_path: str = os.path.join(get_root_directory(), "data/train_data/train.csv")
+    test_data_path: str = os.path.join(get_root_directory(), "data/test_data/test.csv")
+    preprocessor_obj_file_path: str = os.path.join(get_root_directory(), "preprocessor/preprocessor.pkl")
+    preprocessed_train_data_path: str = os.path.join(get_root_directory(), "data/preprocessed/train.npy")
+    preprocessed_test_data_path: str = os.path.join(get_root_directory(), "data/preprocessed/test.npy")
 
 class DataTransformation:
     def __init__(self):
@@ -55,14 +60,16 @@ class DataTransformation:
         except Exception as e:
             raise CustomException(e, sys)
         
-    def initiate_data_transformation(self, train_path, test_path):
+    def initiate_data_transformation(self):
         try:
-            train_df = pd.read_csv(train_path)
-            test_df = pd.read_csv(test_path)
+            # read the train and test data
+            train_df = pd.read_csv(self.data_transformation_config.train_data_path)
+            test_df = pd.read_csv(self.data_transformation_config.test_data_path)
 
             logging.info("Read train and test data completed")
 
             logging.info("Obtaining preprocessing object")
+            # fetch the preprocessor object
             preprocessor_obj = self.get_data_transformer_object()
 
             target_column_name = 'placement_status'
@@ -80,16 +87,31 @@ class DataTransformation:
             train_arr = np.c_[input_feature_train_arr, np.array(target_feature_train_df)]
             test_arr = np.c_[input_feature_test_arr, np.array(target_feature_test_df)]
 
+            # create the directories to save train and test array
+            os.makedirs(os.path.dirname(self.data_transformation_config.preprocessed_train_data_path), exist_ok=True)
+            os.makedirs(os.path.dirname(self.data_transformation_config.preprocessed_test_data_path), exist_ok=True)
+
+            # save the train_arr and test_arr
+            np.save(
+                file = self.data_transformation_config.preprocessed_train_data_path,
+                arr = train_arr
+            )
+
+            np.save(
+                file = self.data_transformation_config.preprocessed_test_data_path,
+                arr = test_arr
+            )
+
+            # save the preprocessor object
             save_object(self.data_transformation_config.preprocessor_obj_file_path, preprocessor_obj)
 
             logging.info("Saved preprocessing object")
             logging.info("Data transformation is completed")
 
-            return (
-                train_arr,
-                test_arr
-            )
-        
         except Exception as e:
+            logging.error(f"Failed to Complete data transformation : {e}")
             raise CustomException(e, sys)
         
+if __name__ == "__main__":
+    data_transformation = DataTransformation()
+    data_transformation.initiate_data_transformation()

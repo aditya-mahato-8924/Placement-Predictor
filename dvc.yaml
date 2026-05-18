@@ -1,0 +1,53 @@
+stages:
+
+  data_ingestion:
+    cmd: python src/components/data_ingestion.py
+    deps:
+      - src/components/data_ingestion.py
+      - notebooks/data/student_placement.csv
+    params:
+      - data_ingestion.test_size
+    outs:
+      - data/train_data/train.csv
+      - data/test_data/test.csv
+
+  data_transformation:
+    cmd: python src/components/data_transformation.py
+    deps:
+      - src/components/data_transformation.py
+      - data/train_data/train.csv
+      - data/test_data/test.csv
+    outs:
+      - preprocessor/preprocessor.pkl
+      - data/preprocessed/train.npy
+      - data/preprocessed/test.npy
+
+  model_building:
+    cmd: python src/components/model_building.py
+    deps:
+      - src/components/model_building.py
+      - data/preprocessed/train.npy
+    params:
+      - model_building.C
+      - model_building.solver
+      - model_building.max_iter
+      - model_building.class_weight
+    outs:
+      - model/model.pkl
+
+  model_evaluation:
+    cmd: python src/components/model_evaluation.py
+    deps:
+      - src/components/model_evaluation.py
+      - data/preprocessed/test.npy
+      - model/model.pkl
+      - preprocessor/preprocessor.pkl
+    outs:
+      - model/metrics/confusion_matrix.png
+      - model/model_info.json
+
+  model_registration:
+    cmd: python src/components/model_registration.py
+    deps:
+      - src/components/model_registration.py
+      - model/model_info.json

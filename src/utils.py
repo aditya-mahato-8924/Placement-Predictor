@@ -3,7 +3,8 @@ import sys
 import pickle
 from src.exception import CustomException
 from sklearn.metrics import accuracy_score, roc_auc_score, f1_score, precision_score, recall_score
-from sklearn.model_selection import RandomizedSearchCV, StratifiedKFold
+import yaml
+import json
 
 def save_object(file_path, obj):
     """Saves a Python object to a file using pickle."""
@@ -21,59 +22,59 @@ def load_object(file_path) -> object:
             return pickle.load(file_obj)
     except Exception as e:
         raise CustomException(e, sys)
-
-def evaluate_models(X_train, y_train, X_test, y_test, models, param_grids):
-    """Evaluates multiple machine learning models and returns a report of their performance."""
+    
+def load_params(params_path:str) -> dict:
+    """Load parameters from yaml file"""
     try:
-        model_report = {}
-        models_dict = {}
-        for model_name, model in models.items():
-            param_grid = param_grids[model_name]
-
-            cv = StratifiedKFold(n_splits=3, shuffle=True, random_state=42)
-
-            # perform hyperparameter tuning using RandomizedSearchCV
-            random_search = RandomizedSearchCV(estimator=model, param_distributions=param_grid, n_iter=20, cv=cv, verbose=0, scoring='roc_auc', n_jobs=-1)
-
-            random_search.fit(X_train, y_train)
-            best_model = random_search.best_estimator_
-
-            # make predictions
-            y_train_pred = best_model.predict(X_train)
-            y_test_pred = best_model.predict(X_test)
-
-            # probability predictions for AUC-ROC
-            if hasattr(best_model, "predict_proba"):
-                y_train_proba = best_model.predict_proba(X_train)[:, 1]
-                y_test_proba = best_model.predict_proba(X_test)[:, 1]
-            else:
-                y_train_proba = best_model.decision_function(X_train)
-                y_test_proba = best_model.decision_function(X_test)
-
-            # calculate metrics
-            train_acc = accuracy_score(y_train, y_train_pred)
-            test_acc = accuracy_score(y_test, y_test_pred)
-
-            train_auc = roc_auc_score(y_train, y_train_proba)
-            test_auc = roc_auc_score(y_test, y_test_proba)
-
-            f1_score_test = f1_score(y_test, y_test_pred, zero_division=0)
-            precision_test = precision_score(y_test, y_test_pred, zero_division=0)
-            recall_test = recall_score(y_test, y_test_pred, zero_division=0)
-
-            model_report[model_name] = {
-                'train_accuracy': train_acc,
-                'train_auc': train_auc,
-                'test_accuracy': test_acc,
-                'test_auc': test_auc,
-                'f1_score': f1_score_test,
-                'precision': precision_test,
-                'recall': recall_test
-            }
-
-            models_dict[model_name] = best_model
-
-        return model_report, models_dict
-        
+        with open(params_path, 'r') as file:
+            params = yaml.safe_load(file)
+        return params
     except Exception as e:
         raise CustomException(e, sys)
+
+def get_root_directory():
+    """Return the root directory path"""
+
+    root_dir = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        ".."
+    )
+
+    return root_dir
+
+def evaluate_model(y_true, y_pred, y_prob):
+    """Evaluate the performance of machine learning model"""
+    
+    accuracy = accuracy_score(y_true, y_pred)
+    precision_1 = precision_score(y_true, y_pred)
+    recall_1 = recall_score(y_true, y_pred)
+    f1_1 = f1_score(y_true, y_pred)
+
+    precision_0 = precision_score(y_true, y_pred, pos_label=0)
+    recall_0 = recall_score(y_true, y_pred, pos_label=0)
+    f1_0 = f1_score(y_true, y_pred, pos_label=0)
+    auc_score = roc_auc_score(y_true, y_prob)
+ 
+    return {
+        'accuracy': accuracy,
+        'precision_0': precision_0,
+        'recall_0': recall_0,
+        'f1_0': f1_0,
+        'precision_1': precision_1,
+        'recall_1': recall_1,
+        'f1_1': f1_1,
+        'roc_auc_score': auc_score
+    }
+
+def save_model_info(model_info:dict, file_path:str) -> None:
+    """Save the model info into the specified path in JSON format."""
+
+    # save the dictionary as a JSON file
+    with open(file_path, 'w') as file:
+        json.dump(model_info, file, indent=4)
+
+def load_model_info(file_path: str) -> dict:
+    """Load the model info from a JSON file."""
+    with open(file_path, 'r') as file:
+        model_info = json.load(file)
+    return model_info

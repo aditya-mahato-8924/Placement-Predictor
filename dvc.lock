@@ -1,0 +1,114 @@
+schema: '2.0'
+stages:
+  data_ingestion:
+    cmd: python src/components/data_ingestion.py
+    deps:
+    - path: notebooks/data/student_placement.csv
+      hash: md5
+      md5: 852807daaf85b919ba302ee505fcfbcb
+      size: 6126573
+    - path: src/components/data_ingestion.py
+      hash: md5
+      md5: 421081200fc92c091106bba73aea45d4
+      size: 2379
+    params:
+      params.yaml:
+        data_ingestion.test_size: 0.2
+    outs:
+    - path: data/test_data/test.csv
+      hash: md5
+      md5: c12e1e8ecf5065233c26eee5db6dd0e8
+      size: 1245460
+    - path: data/train_data/train.csv
+      hash: md5
+      md5: 081bcbe8c96437f4ee03f82e1f0931ea
+      size: 4981368
+  data_transformation:
+    cmd: python src/components/data_transformation.py
+    deps:
+    - path: data/test_data/test.csv
+      hash: md5
+      md5: c12e1e8ecf5065233c26eee5db6dd0e8
+      size: 1245460
+    - path: data/train_data/train.csv
+      hash: md5
+      md5: 081bcbe8c96437f4ee03f82e1f0931ea
+      size: 4981368
+    - path: src/components/data_transformation.py
+      hash: md5
+      md5: f67c04a6566b44be007c93422d442dae
+      size: 5216
+    outs:
+    - path: data/preprocessed/test.npy
+      hash: md5
+      md5: d2ba335a320963e952bbb57a75f70c2a
+      size: 3520128
+    - path: data/preprocessed/train.npy
+      hash: md5
+      md5: cf8e2e3f8704cdf0cd7b72cbddaebd93
+      size: 14080128
+    - path: preprocessor/preprocessor.pkl
+      hash: md5
+      md5: b754b50e337079789e5d02068b31cdaa
+      size: 3065
+  model_building:
+    cmd: python src/components/model_building.py
+    deps:
+    - path: data/preprocessed/train.npy
+      hash: md5
+      md5: cf8e2e3f8704cdf0cd7b72cbddaebd93
+      size: 14080128
+    - path: src/components/model_building.py
+      hash: md5
+      md5: e4922eb4be3c2c406c25c469a5a46a8e
+      size: 2378
+    params:
+      params.yaml:
+        model_building.C: 1
+        model_building.class_weight: balanced
+        model_building.max_iter: 2000
+        model_building.solver: saga
+    outs:
+    - path: model/model.pkl
+      hash: md5
+      md5: 3222e2943c183bf1fd42583e1b7043cf
+      size: 841
+  model_evaluation:
+    cmd: python src/components/model_evaluation.py
+    deps:
+    - path: data/preprocessed/test.npy
+      hash: md5
+      md5: d2ba335a320963e952bbb57a75f70c2a
+      size: 3520128
+    - path: model/model.pkl
+      hash: md5
+      md5: 3222e2943c183bf1fd42583e1b7043cf
+      size: 841
+    - path: preprocessor/preprocessor.pkl
+      hash: md5
+      md5: b754b50e337079789e5d02068b31cdaa
+      size: 3065
+    - path: src/components/model_evaluation.py
+      hash: md5
+      md5: 63f0ac81d34ede6901240b42b865da52
+      size: 4924
+    outs:
+    - path: model/metrics/confusion_matrix.png
+      hash: md5
+      md5: bc39660e83ddafab42a45d8bb0330d5e
+      size: 17332
+    - path: model/model_info.json
+      hash: md5
+      md5: 0ea1e28545f99085a9691e4c270ca975
+      size: 173
+  model_registration:
+    cmd: python src/components/model_registration.py
+    deps:
+    - path: model/model_info.json
+      hash: md5
+      md5: 0ea1e28545f99085a9691e4c270ca975
+      size: 173
+    - path: src/components/model_registration.py
+      hash: md5
+      md5: 5d54677152a1f8b37f63bf1a22f5d2a4
+      size: 2597

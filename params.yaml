@@ -1,0 +1,10 @@
+data_ingestion:
+  test_size: 0.2
+
+model_building:
+  model_name: "Logistic Regression"
+  C : 1
+  solver: 'saga'
+  max_iter: 2000
+  l1_ratio : 0.5
+  class_weight: 'balanced'

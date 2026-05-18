@@ -7,5 +7,7 @@ xgboost
 fastapi
 uvicorn
 mlflow
+dagshub
 dvc
+pyyaml
 -e .
